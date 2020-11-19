@@ -1,6 +1,8 @@
 import operator as op
 import random as rand
 import math as m
+import numpy as np
+import matplotlib.pyplot as mpl
 
 
 def toint(Num):
@@ -19,8 +21,8 @@ def collect_data():
     l = int(input('Insert message length. (decimal) '))
     d = int(input('Insert code distance. (decimal) '))
     epsilon = float(input('Insert accuracy of the decoding error probability(epsilon). '))
-    p = float(input('Insert p. '))
-    return g, epsilon, l, p, d
+    #p = float(input('Insert p. '))
+    return g, epsilon, l, d
 
 
 def checksum(a, g, n, r):
@@ -69,15 +71,26 @@ def weight(num, length):
     return w
 
 
+def graphics(P, Pe, Pu):
+    mpl.plot(P, Pe, '--r')
+    mpl.xlabel('p')
+    mpl.ylabel('Pe')
+    mpl.show()
+    mpl.plot(P, Pu, '--g')
+    mpl.xlabel('p')
+    mpl.ylabel('P upper')
+    mpl.show()
+    return 1
+
+
 def main():
-    g, epsilon, l, p, d = collect_data()
+    g, epsilon, l, d = collect_data()
     r = -1
     tmp = g
     while tmp != 0:
         tmp = tmp >> 1
         r += 1
     n = l + r
-    Pu = upperDecoding(d, p, n)
     m = 1
     A = []
     while m < 2**l:
@@ -87,13 +100,21 @@ def main():
         w = weight(a, n)
         A.insert(m, w)
         m += 1
-    i = d
-    Pe = 0
-    while i <= n:
-        Pe = Pe + A.count(i) * p**i * (1-p)**(n-i)
-        i += 1
-
-
+    c = 0
+    Pu = []
+    Pe = []
+    P = []
+    for p in np.arange(0, 1, 0.1):
+        P.insert(c, p)
+        Pu.insert(c, upperDecoding(d, p, n))
+        i = d
+        pe = 0
+        while i <= n:
+            pe = pe + A.count(i) * p ** i * (1 - p) ** (n - i)
+            i += 1
+        Pe.insert(c, pe)
+        c += 1
+    graphics(P, Pe, Pu)
     N = 9/(4*epsilon**2)
     Ne = 0
     while N > 0:
