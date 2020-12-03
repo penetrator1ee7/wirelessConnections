@@ -20,9 +20,9 @@ def collect_data():
     g = toint(g)
     l = int(input('Insert message length. (decimal) '))
     d = int(input('Insert code distance. (decimal) '))
-    epsilon = float(input('Insert accuracy of the decoding error probability(epsilon). '))
+    #epsilon = float(input('Insert accuracy of the decoding error probability(epsilon). '))
     #p = float(input('Insert p. '))
-    return g, epsilon, l, d
+    return g, l, d
 
 
 def checksum(a, g, n, r):
@@ -71,20 +71,33 @@ def weight(num, length):
     return w
 
 
-def graphics(P, Pe, Pu):
-    mpl.plot(P, Pe, '--r')
+def GenPePuPLists(d, n, A):
+    c = 0
+    Pu = []
+    Pe = []
+    P = []
+    for p in np.arange(0, 1, 0.01):
+        P.insert(c, p)
+        Pu.insert(c, upperDecoding(d, p, n))
+        i = d
+        pe = 0
+        while i <= n:
+            pe = pe + A[i] * p ** i * (1 - p) ** (n - i)
+            i += 1
+        Pe.insert(c, pe)
+        c += 1
+    return Pe, Pu, P
+
+
+def graphics(P, Pe, Pu, mark):
+    mpl.plot(P, Pe, (mark + 'r'))
     mpl.xlabel('p')
-    mpl.ylabel('Pe')
-    mpl.show()
-    mpl.plot(P, Pu, '--g')
-    mpl.xlabel('p')
-    mpl.ylabel('P upper')
-    mpl.show()
+    mpl.ylabel('Pe(red), Pu(green)')
+    mpl.plot(P, Pu, (mark + 'g'))
     return 1
 
 
-def main():
-    g, epsilon, l, d = collect_data()
+def main(g, l, d):
     r = -1
     tmp = g
     while tmp != 0:
@@ -92,30 +105,17 @@ def main():
         r += 1
     n = l + r
     m = 1
-    A = []
+    A = {a: 0 for a in range(n+1)}
     while m < 2**l:
         a = m << r
         c = checksum(a, g, n, r)
         a = a + c
         w = weight(a, n)
-        A.insert(m, w)
+        A[w] += 1
         m += 1
-    c = 0
-    Pu = []
-    Pe = []
-    P = []
-    for p in np.arange(0, 1, 0.1):
-        P.insert(c, p)
-        Pu.insert(c, upperDecoding(d, p, n))
-        i = d
-        pe = 0
-        while i <= n:
-            pe = pe + A.count(i) * p ** i * (1 - p) ** (n - i)
-            i += 1
-        Pe.insert(c, pe)
-        c += 1
-    graphics(P, Pe, Pu)
-    N = 9/(4*epsilon**2)
+    return n, A
+
+    '''N = 9/(4*epsilon**2)
     Ne = 0
     while N > 0:
         e = errVector(p, n)
@@ -125,10 +125,22 @@ def main():
             Ne += 1
         N -= 1
     N = 9 / (4 * epsilon ** 2)
-    PeImitated = Ne / N
-    print(' Pe Imitated = ', PeImitated, '\n Pe = ', Pe, '\n Pe upper = ', Pu)
+    PeImitated = Ne / N'''
 
 
 if __name__ == '__main__':
-   main()
+    g, l, d = collect_data()
 
+    nL, AL = main(g, (l - 1), d)
+    PeL, PuL, PL = GenPePuPLists(d, nL, AL)
+    graphics(PL, PeL, PuL, '--')
+
+    n, A = main(g, l, d)
+    Pe, Pu, P = GenPePuPLists(d, n, A)
+    graphics(P, Pe, Pu, '-.')
+
+    nG, AG = main(g, (l + 1), d)
+    PeG, PuG, PG = GenPePuPLists(d, nG, AG)
+    graphics(PG, PeG, PuG, '+')
+
+    mpl.show()
